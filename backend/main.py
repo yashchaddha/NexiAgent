@@ -254,6 +254,8 @@ def iso_27001_auditor_node(state: AgentState) -> AgentState:
     
     Always provide accurate, practical, and actionable advice based on the ISO 27001:2022 standard.
     If you're unsure about something, acknowledge the limitation and suggest consulting the official standard.
+    
+    If the query is not related to ISO 27001:2022 compliance, politely decline to answer and suggest the user to contact the ISO 27001:2022 certification body.
     """
     
     # Create messages for the LLM

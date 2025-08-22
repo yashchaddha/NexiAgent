@@ -44,6 +44,12 @@ st.markdown("""
         margin: 1rem 0;
         border-left: 4px solid;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     
     .user-message {
@@ -58,6 +64,41 @@ st.markdown("""
         border-left-color: #a855f7;
         margin-right: 2rem;
         color: #ffffff;
+    }
+    
+    /* Typing animation */
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background-color: #581c87;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border-left: 4px solid #a855f7;
+        color: #ffffff;
+    }
+    
+    .typing-dots {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 10px;
+    }
+    
+    .typing-dots span {
+        width: 8px;
+        height: 8px;
+        margin: 0 2px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out;
+    }
+    
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    
+    @keyframes typing {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+        40% { transform: scale(1); opacity: 1; }
     }
     
     /* Input styling */
@@ -157,6 +198,33 @@ st.markdown("""
         border: 1px solid #475569;
         color: #ffffff;
     }
+    
+    /* Auto-scroll container */
+    .chat-container {
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 10px;
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .chat-container::-webkit-scrollbar-track {
+        background: #1e293b;
+        border-radius: 4px;
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -172,6 +240,9 @@ if 'session_id' not in st.session_state:
 
 if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
+
+if 'is_typing' not in st.session_state:
+    st.session_state.is_typing = False
 
 # Function to create a new session
 def create_new_session():
@@ -328,10 +399,13 @@ if not st.session_state.session_id:
         st.info("💡 Click 'Start New Conversation' to begin chatting with the ISO Auditor Agent!")
         st.stop()
 
-# Chat interface
+# Chat interface with auto-scroll container
 chat_container = st.container()
 
 with chat_container:
+    # Create a scrollable container for chat messages
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    
     # Display chat messages
     for message in st.session_state.messages:
         if message["role"] == "user":
@@ -348,24 +422,41 @@ with chat_container:
                 {message["content"]}
             </div>
             """, unsafe_allow_html=True)
+    
+    # Show typing indicator if processing
+    if st.session_state.is_typing:
+        st.markdown("""
+        <div class="typing-indicator">
+            <strong>🔒 ISO Auditor is thinking</strong>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Input area
+# Input area with form for better handling
 st.markdown("---")
 input_container = st.container()
 
 with input_container:
-    col1, col2 = st.columns([4, 1])
-    
-    with col1:
-        user_input = st.text_input(
-            "Ask me about ISO 27001:2022 compliance...",
-            key="user_input",
-            placeholder="e.g., How do I implement access control policies?",
-            label_visibility="collapsed"
-        )
-    
-    with col2:
-        send_button = st.button("Send", use_container_width=True)
+    # Use a form for better input handling
+    with st.form(key="chat_form", clear_on_submit=True):
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            user_input = st.text_input(
+                "Ask me about ISO 27001:2022 compliance...",
+                key="user_input",
+                placeholder="e.g., How do I implement access control policies?",
+                label_visibility="collapsed"
+            )
+        
+        with col2:
+            send_button = st.form_submit_button("Send", use_container_width=True)
 
 # Process user input
 if send_button and user_input:
@@ -375,42 +466,52 @@ if send_button and user_input:
         "content": user_input
     })
     
-    # Show typing indicator
-    with st.spinner("🔒 ISO Auditor is thinking..."):
-        try:
-            # Send query to API with session ID
-            response = requests.post(
-                f"{st.session_state.api_url}/query",
-                json={
-                    "query": user_input,
-                    "session_id": st.session_state.session_id
-                },
-                timeout=30
-            )
+    # Set typing indicator
+    st.session_state.is_typing = True
+    
+    # Rerun to show typing indicator
+    st.rerun()
+
+# Process typing and API call
+if st.session_state.is_typing and st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+    # Get the last user message
+    last_user_message = st.session_state.messages[-1]["content"]
+    
+    # Process the API call
+    try:
+        # Send query to API with session ID
+        response = requests.post(
+            f"{st.session_state.api_url}/query",
+            json={
+                "query": last_user_message,
+                "session_id": st.session_state.session_id
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
             
-            if response.status_code == 200:
-                result = response.json()
-                
-                # Add assistant response to chat
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": result["response"]
-                })
-                
-                # Update conversation history
-                st.session_state.conversation_history = result.get("conversation_history", [])
-                
-                # Clear input
-                st.session_state.user_input = ""
-                
-            else:
-                st.error(f"API Error: {response.status_code}")
-                
-        except requests.exceptions.RequestException as e:
-            st.error(f"Connection Error: {str(e)}")
-            st.info("Please check if the backend API is running.")
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+            # Add assistant response to chat
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": result["response"]
+            })
+            
+            # Update conversation history
+            st.session_state.conversation_history = result.get("conversation_history", [])
+            
+        else:
+            st.error(f"API Error: {response.status_code}")
+            
+    except requests.exceptions.RequestException as e:
+        st.error(f"Connection Error: {str(e)}")
+        st.info("Please check if the backend API is running.")
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+    
+    # Clear typing indicator
+    st.session_state.is_typing = False
     
     # Rerun to update the chat
     st.rerun()
@@ -425,10 +526,25 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Auto-scroll to bottom
+# JavaScript for auto-scroll to bottom
 st.markdown("""
 <script>
-    // Auto-scroll to bottom of chat
-    window.scrollTo(0, document.body.scrollHeight);
+    // Auto-scroll to bottom of chat container
+    function scrollToBottom() {
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }
+    
+    // Scroll on page load
+    window.addEventListener('load', scrollToBottom);
+    
+    // Scroll when new messages are added
+    const observer = new MutationObserver(scrollToBottom);
+    const chatContainer = document.querySelector('.chat-container');
+    if (chatContainer) {
+        observer.observe(chatContainer, { childList: true, subtree: true });
+    }
 </script>
 """, unsafe_allow_html=True)
