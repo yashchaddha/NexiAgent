@@ -1,212 +1,311 @@
-# 🔒 ISO 27001:2022 Auditor Agent
+# 🔐 ISO 27001:2022 Auditor Agent with Authentication
 
-An intelligent agent built with LangGraph, FastAPI, and Streamlit that acts as an expert Internal Auditor for ISO 27001:2022 compliance framework. The agent provides comprehensive guidance on information security management systems, control implementation, and compliance best practices.
+An intelligent agent acting as an expert Internal Auditor of ISO 27001:2022 compliance framework, capable of answering user queries with memory and user authentication.
+
+## 🚀 Features
+
+- **Expert Knowledge**: Comprehensive ISO 27001:2022 compliance guidance
+- **Memory System**: Remembers conversation context across sessions
+- **User Authentication**: Secure login/signup with JWT tokens
+- **PostgreSQL Database**: Persistent user data storage
+- **Modern UI**: Beautiful Streamlit interface with dark theme
+- **Real-time Chat**: Interactive chat interface with typing animations
+- **Session Management**: Multiple concurrent user sessions
+- **Auto-scroll**: Automatic scrolling to latest messages
+- **Responsive Design**: Works on desktop and mobile devices
 
 ## 🏗️ Architecture
 
-- **Backend**: FastAPI with LangGraph StateGraph
-- **Frontend**: Streamlit with modern chat interface
-- **AI Engine**: OpenAI GPT-4 with ISO 27001:2022 knowledge base
-- **State Management**: Single-node LangGraph workflow
-
-## ✨ Features
-
-- **Expert Knowledge**: Comprehensive understanding of ISO 27001:2022 standard
-- **Interactive Chat**: User-friendly chat interface for compliance queries
-- **Real-time Responses**: Instant answers to ISO compliance questions
-- **Control Guidance**: Detailed information on all 93 controls
-- **Implementation Support**: Step-by-step guidance for compliance projects
-- **Risk Assessment**: Expert advice on security risk management
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.8+
-- OpenAI API key
-- pip package manager
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd completeAgent
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp env.example .env
-   # Edit .env and add your OpenAI API key
-   ```
-
-4. **Start the backend**
-   ```bash
-   cd backend
-   python main.py
-   ```
-
-5. **Start the frontend** (in a new terminal)
-   ```bash
-   cd frontend
-   streamlit run app.py
-   ```
-
-6. **Access the application**
-   - Frontend: http://localhost:8501
-   - Backend API: http://localhost:8000
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Main API      │    │   PostgreSQL    │
+│   (Streamlit)   │◄──►│   (Port 8000)   │◄──►│   Database      │
+│   Port 8501     │    │   + LangGraph   │    │   + Users       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                              ▲
+                              │
+                       ┌─────────────────┐
+                       │   Auth API      │
+                       │   (Port 8001)   │
+                       │   + JWT         │
+                       └─────────────────┘
+```
 
 ## 📁 Project Structure
 
 ```
 completeAgent/
-├── backend/
-│   └── main.py              # FastAPI backend with LangGraph
 ├── frontend/
-│   └── app.py               # Streamlit UI
-├── requirements.txt          # Python dependencies
-├── env.example              # Environment variables template
-└── README.md                # This file
+│   └── app.py                 # Streamlit UI application
+├── backend/
+│   ├── main.py                # Main auditor API (LangGraph + FastAPI)
+│   ├── login.py               # Authentication API server
+│   ├── database.py            # Database configuration
+│   ├── models.py              # SQLAlchemy database models
+│   ├── schemas.py             # Pydantic data validation
+│   ├── auth.py                # Authentication utilities
+│   ├── init_db.py             # Database initialization
+│   ├── test_auth.py           # Authentication tests
+│   └── README_AUTH.md         # Authentication documentation
+├── requirements.txt            # Python dependencies
+├── start.py                   # Start main auditor only
+├── start_auth.py              # Start both servers
+├── demo.py                    # Demo script with memory
+└── README.md                  # This file
+```
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Set Up PostgreSQL
+
+Make sure PostgreSQL is running:
+
+```bash
+# macOS
+brew services start postgresql
+
+# Ubuntu/Debian
+sudo systemctl start postgresql
+```
+
+### 3. Configure Environment
+
+Copy and edit the environment template:
+
+```bash
+cd backend
+cp env_template.txt .env
+```
+
+Edit `.env` with your database credentials:
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=iso_auditor_db
+SECRET_KEY=your-super-secret-key
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 4. Initialize Database
+
+```bash
+cd backend
+python init_db.py
+```
+
+### 5. Start Both Servers
+
+```bash
+# From project root
+python start_auth.py
+```
+
+This starts:
+- **Authentication Server**: Port 8001
+- **Main Auditor Server**: Port 8000
+
+### 6. Start Frontend
+
+In a new terminal:
+
+```bash
+cd frontend
+streamlit run app.py
+```
+
+## 🔐 Authentication System
+
+### User Registration Fields
+
+- **Name**: Full name
+- **Email**: Unique email address
+- **Organization Name**: Company name
+- **Domain**: Business domain (Technology, Healthcare, etc.)
+- **Location**: Geographic location
+- **Organization URL**: Company website (optional)
+- **Password**: Secure password
+
+### API Endpoints
+
+| Service | Port | Endpoints |
+|---------|------|-----------|
+| **Auth API** | 8001 | `/signup`, `/login`, `/profile`, `/health` |
+| **Main API** | 8000 | `/query`, `/session/*`, `/health` |
+
+### Security Features
+
+- **JWT Tokens**: Secure, time-limited access
+- **Password Hashing**: Bcrypt with salt
+- **CORS Protection**: Cross-origin request handling
+- **Input Validation**: Pydantic schema validation
+- **SQL Injection Protection**: SQLAlchemy ORM
+
+## 🧪 Testing
+
+### Test Authentication
+
+```bash
+cd backend
+python test_auth.py
+```
+
+### Test Main Auditor
+
+```bash
+cd backend
+python test_backend.py
+```
+
+### Manual Testing
+
+```bash
+# Health checks
+curl http://localhost:8000/health
+curl http://localhost:8001/health
+
+# User signup
+curl -X POST http://localhost:8001/signup \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","organization_name":"Test Corp","domain":"Technology","location":"Test City","password":"TestPass123!"}'
 ```
 
 ## 🔧 Configuration
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_USER` | `postgres` | Database username |
+| `POSTGRES_PASSWORD` | `password` | Database password |
+| `POSTGRES_HOST` | `localhost` | Database host |
+| `POSTGRES_PORT` | `5432` | Database port |
+| `POSTGRES_DB` | `iso_auditor_db` | Database name |
+| `SECRET_KEY` | `your-secret-key` | JWT secret key |
+| `OPENAI_API_KEY` | - | OpenAI API key |
 
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8000
-FRONTEND_PORT=8501
+### Ports
+
+- **Frontend**: 8501 (Streamlit)
+- **Main API**: 8000 (FastAPI + LangGraph)
+- **Auth API**: 8001 (FastAPI + PostgreSQL)
+
+## 📚 API Documentation
+
+Once servers are running:
+
+- **Main API Docs**: http://localhost:8000/docs
+- **Auth API Docs**: http://localhost:8001/docs
+- **ReDoc**: http://localhost:8000/redoc, http://localhost:8001/redoc
+
+## 🎯 Usage Examples
+
+### 1. User Registration
+
+```python
+import requests
+
+# Sign up
+response = requests.post("http://localhost:8001/signup", json={
+    "name": "John Doe",
+    "email": "john@example.com",
+    "organization_name": "TechCorp Inc",
+    "domain": "Technology",
+    "location": "San Francisco, CA",
+    "password": "SecurePass123!"
+})
 ```
 
-### API Configuration
+### 2. User Login
 
-The frontend connects to the backend API. You can modify the API URL in the Streamlit sidebar if needed.
+```python
+# Login
+response = requests.post("http://localhost:8001/login", json={
+    "email": "john@example.com",
+    "password": "SecurePass123!"
+})
 
-## 💬 Usage Examples
-
-### Sample Queries
-
-- "What are the main control groups in ISO 27001:2022?"
-- "How do I implement access control policies?"
-- "What is the risk assessment process?"
-- "Explain control A.5.1 - Information security policies"
-- "How do I conduct an internal audit?"
-- "What are the key changes in the 2022 version?"
-
-### Quick Actions
-
-The sidebar includes quick action buttons for common queries:
-- 📋 Show Control Groups
-- 🔍 Risk Assessment
-- 📚 Implementation Steps
-
-## 🧠 Knowledge Base
-
-The agent includes comprehensive knowledge of:
-
-- **Control Groups**: People, Organizational, Technological, Physical
-- **Specific Controls**: All 93 controls with descriptions
-- **Implementation Steps**: 6-step process for ISMS implementation
-- **Best Practices**: Industry-standard compliance approaches
-- **Risk Management**: Assessment and treatment methodologies
-
-## 🔌 API Endpoints
-
-### Backend API
-
-- `GET /` - Root endpoint
-- `POST /query` - Process ISO compliance queries
-- `GET /health` - Health check
-
-### Request/Response Format
-
-```json
-POST /query
-{
-  "query": "How do I implement ISO 27001:2022?"
-}
-
-Response:
-{
-  "response": "Detailed implementation guidance...",
-  "query": "How do I implement ISO 27001:2022?"
-}
+token = response.json()["access_token"]
 ```
 
-## 🛠️ Development
+### 3. Ask ISO 27001 Questions
 
-### Running in Development Mode
+```python
+# Ask question with authentication
+headers = {"Authorization": f"Bearer {token}"}
+response = requests.post("http://localhost:8000/query", json={
+    "query": "How do I implement access control policies?",
+    "session_id": "user_session_123"
+}, headers=headers)
+```
 
-1. **Backend Development**
+## 🚨 Production Considerations
+
+### Security
+- Change default `SECRET_KEY`
+- Use strong database passwords
+- Enable HTTPS
+- Restrict CORS origins
+- Implement rate limiting
+
+### Database
+- Use connection pooling
+- Regular backups
+- Monitor performance
+- Database migrations
+
+### Deployment
+- Environment-specific configs
+- Health checks
+- Monitoring and alerting
+- Reverse proxy (nginx)
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Port Already in Use**
    ```bash
-   cd backend
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   lsof -ti:8000 | xargs kill -9  # Main API
+   lsof -ti:8001 | xargs kill -9  # Auth API
    ```
 
-2. **Frontend Development**
-   ```bash
-   cd frontend
-   streamlit run app.py --server.port 8501
-   ```
+2. **Database Connection Failed**
+   - Check PostgreSQL is running
+   - Verify credentials in `.env`
+   - Ensure database exists
 
-### Testing
+3. **Import Errors**
+   - Check Python path
+   - Verify dependencies installed
+   - Check file permissions
 
-Test the API connection using the "Test Connection" button in the Streamlit sidebar.
+### Debug Mode
 
-## 📚 ISO 27001:2022 Information
-
-### Key Changes in 2022 Version
-
-- Reduced from 114 controls to 93 controls
-- Reorganized into 4 control groups instead of 14
-- New controls for cloud security and threat intelligence
-- Enhanced focus on data protection and privacy
-
-### Control Groups
-
-1. **People (A.7)**: Human resource security, awareness, and training
-2. **Organizational (A.5)**: Policies, procedures, and organizational structure
-3. **Technological (A.8)**: Technical controls for systems and infrastructure
-4. **Physical (A.6)**: Physical security controls for facilities and equipment
+```bash
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+1. Follow existing code structure
+2. Add tests for new features
+3. Update documentation
+4. Use type hints and docstrings
+5. Follow PEP 8 style guidelines
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is for educational and professional use in ISO 27001:2022 compliance.
 
-## ⚠️ Disclaimer
+---
 
-This tool provides guidance based on ISO 27001:2022 standards but should not replace professional consultation. Always refer to official ISO documentation and consult with qualified professionals for compliance matters.
-
-## 🆘 Support
-
-For issues and questions:
-1. Check the API connection in the sidebar
-2. Verify your OpenAI API key is set correctly
-3. Ensure both backend and frontend are running
-4. Check the console for error messages
-
-## 🔗 Useful Links
-
-- [ISO 27001:2022 Official Standard](https://www.iso.org/standard/27001)
-- [ISO 27001 Information Security Management](https://www.iso.org/isoiec-27001-information-security)
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Streamlit Documentation](https://docs.streamlit.io/)
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
+**Need Help?** Check the authentication README (`backend/README_AUTH.md`) or create an issue in the repository.
